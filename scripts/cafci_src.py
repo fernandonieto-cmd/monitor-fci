@@ -10,7 +10,7 @@ UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML,
 BASE = 'https://estadisticas.cafci.org.ar'
 
 
-def _get(url, tries=4, timeout=40):
+def _get(url, tries=5, timeout=40):
     last = None
     for i in range(tries):
         try:
@@ -20,7 +20,8 @@ def _get(url, tries=4, timeout=40):
                 return r.read().decode('utf-8', 'replace')
         except Exception as e:
             last = e
-            time.sleep(2 + 3 * i)
+            # 429 = demasiados pedidos: esperar bastante más
+            time.sleep((20 + 20 * i) if getattr(e, 'code', None) == 429 else (2 + 3 * i))
     raise last
 
 
