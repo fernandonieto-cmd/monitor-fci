@@ -1,0 +1,34 @@
+name: Actualizar datos
+
+# Corre solo todas las noches a las 0 h de Argentina (03:00 UTC) y también cuando se toca "Run workflow".
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install openpyxl==3.1.5
+      - name: Bajar datos de CAFCI
+        run: python3 scripts/build.py data/data.json
+      - name: Publicar
+        run: |
+          git config user.name "monitor-fci-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/data.json
+          git commit -m "Datos CAFCI $(TZ=America/Argentina/Buenos_Aires date '+%d/%m/%Y %H:%M')" || echo "Sin cambios"
+          git push

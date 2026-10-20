@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Monitor FCI</title>
+<meta name="description" content="Rendimientos y riesgo de los FCI en dólares y en pesos de Balanz, Santander, Macro, Galicia y BBVA. Datos de CAFCI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c4a8f'/%3E%3Cpath d='M6 22l6-6 5 4 9-10' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<style>
+/* Layout: una columna de trabajo; encabezado con acción, luego tres familias como tablas ordenables con mini-gráfico por fila. */
+:root{
+  --bg:#f4f6f7; --surface:#ffffff; --ink:#15212b; --muted:#5b6a76; --line:#dbe2e7; --soft:#eef2f4;
+  --accent:#2c4a8f; --accent-ink:#ffffff;
+  --best:#e3f4e7; --best-ink:#14632e; --best-line:#9ed2ab;
+  --neg:#b23a2b; --pos:#1d6b3a; --warn:#9a6a00;
+  --balanz:#3346a8; --santander:#c62d22; --macro:#0a7f86; --galicia:#8e3b8a; --bbva:#1f6fb2;
+  --mark:#b4530b; --mark-bg:#fff3e6;
+  --font-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --font-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161b; --surface:#172028; --ink:#e5ecf1; --muted:#93a3b0; --line:#2a3741; --soft:#1d2831;
+  --accent:#8fa8ec; --accent-ink:#0e1520;
+  --best:#173a24; --best-ink:#8be0a6; --best-line:#2f6b45;
+  --neg:#f08b7c; --pos:#7fd39c; --warn:#e2b54f;
+  --balanz:#8e9cf0; --santander:#ff7a6e; --macro:#4cc8cf; --galicia:#e39be0; --bbva:#7fb8ef; --mark:#ffb26b; --mark-bg:#3a2614; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161b; --surface:#172028; --ink:#e5ecf1; --muted:#93a3b0; --line:#2a3741; --soft:#1d2831;
+  --accent:#8fa8ec; --accent-ink:#0e1520;
+  --best:#173a24; --best-ink:#8be0a6; --best-line:#2f6b45;
+  --neg:#f08b7c; --pos:#7fd39c; --warn:#e2b54f;
+  --balanz:#8e9cf0; --santander:#ff7a6e; --macro:#4cc8cf; --galicia:#e39be0; --bbva:#7fb8ef; --mark:#ffb26b; --mark-bg:#3a2614; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1340px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--font-display);font-stretch:85%;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:780;line-height:1.05}
+h2{font-size:1.25rem;font-weight:720}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+header.top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;align-items:end}
+.kicker{font-family:var(--font-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{max-width:62ch;color:var(--muted);margin-top:8px}
+.actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+button.primary{font:600 .95rem var(--font-body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:11px 18px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+button.primary:hover{filter:brightness(1.08)}
+button.primary:disabled,button.secondary:disabled{opacity:.6;cursor:progress}
+button.secondary{font:500 .82rem var(--font-body);background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+button.secondary:hover{border-color:var(--accent)}
+.lastfull .pending{color:var(--warn);font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+th.mk,td.mk{width:34px;padding-right:0;text-align:center}
+td.mk input{width:18px;height:18px;accent-color:var(--mark);cursor:pointer;margin:0}
+tbody tr.row.marked td{background:var(--mark-bg);box-shadow:inset 0 2px 0 var(--mark),inset 0 -2px 0 var(--mark)}
+tbody tr.row.marked td:first-child{box-shadow:inset 0 2px 0 var(--mark),inset 0 -2px 0 var(--mark),inset 5px 0 0 var(--mark)}
+tbody tr.row.marked td:last-child{box-shadow:inset 0 2px 0 var(--mark),inset 0 -2px 0 var(--mark),inset -2px 0 0 var(--mark)}
+tbody tr.row.marked td.best{box-shadow:inset 0 2px 0 var(--mark),inset 0 -2px 0 var(--mark);background:var(--best)!important}
+tbody tr.row.marked .fname{color:var(--mark)}
+.mine{font-size:.88rem;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.mine .chip{border:2px solid var(--mark);background:var(--mark-bg);border-radius:6px;padding:2px 8px;font-weight:600}
+.mine .chip span{font:500 .8rem var(--font-mono);color:var(--muted);margin-left:6px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;display:none}
+.busy .spin{display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+.lastfull{font-size:.82rem;color:var(--muted);text-align:right}
+
+.status{display:flex;flex-wrap:wrap;gap:8px}
+.status[hidden]{display:none}
+.st{font-size:.82rem;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;display:inline-flex;gap:6px;align-items:center}
+.st b{font-weight:600}
+.st.ok{border-color:var(--best-line);color:var(--best-ink)}
+.st.err{border-color:var(--neg);color:var(--neg)}
+.st.info{color:var(--muted)}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.84rem;color:var(--muted);align-items:center}
+.legend .sw{display:inline-block;width:28px;height:16px;border-radius:4px;background:var(--best);border:1px solid var(--best-line);vertical-align:-3px;margin-right:6px}
+
+#families{display:flex;flex-direction:column;gap:40px}
+section.fam{display:flex;flex-direction:column;gap:12px}
+.famhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.famhead p{font-size:.88rem;color:var(--muted)}
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:1080px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{font:600 .72rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--soft)}
+thead th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+thead th button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+thead th .arr{opacity:.35}
+thead th .thsub{display:block;font-size:.62rem;font-weight:400;letter-spacing:.02em;text-transform:none;opacity:.85}
+thead th[aria-sort] .arr{opacity:1;color:var(--ink)}
+tbody tr.row:hover td{background:var(--soft)}
+tbody tr.row:last-of-type td,tbody tr.detail:last-of-type td{border-bottom:0}
+td.fund{min-width:270px;max-width:340px;white-space:normal;text-align:left}
+.fundcell{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
+.inst{font:700 .68rem var(--font-mono);letter-spacing:.04em;color:#fff;border-radius:6px;width:40px;height:26px;display:grid;place-items:center;margin-top:2px}
+.inst.balanz{background:var(--balanz)} .inst.santander{background:var(--santander)} .inst.macro{background:var(--macro)}
+.inst.galicia{background:var(--galicia)} .inst.bbva{background:var(--bbva)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav.banks{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-block:10px;border-bottom:1px solid var(--line)}
+.banks-label{font:600 .72rem var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.bankchips{display:flex;flex-wrap:wrap;gap:8px}
+.bankchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer;font-size:.88rem;user-select:none}
+.bankchip input{position:absolute;opacity:0;pointer-events:none}
+.bankchip .inst{width:38px;height:22px;margin:0;font-size:.62rem}
+.bankchip .cnt{font:500 .74rem var(--font-mono);color:var(--muted)}
+.bankchip.off{opacity:.45}
+.bankchip.off .inst{filter:grayscale(1)}
+.bankchip:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+button.linkish{all:unset;cursor:pointer;color:var(--accent);font-size:.84rem;text-decoration:underline;text-underline-offset:3px}
+button.linkish:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wk{font:500 .6rem var(--font-mono);color:var(--muted);margin-left:2px;vertical-align:super}
+.viewer-note{font-size:.82rem;color:var(--muted);text-align:right;max-width:30ch}
+:root[data-theme="dark"] .inst{color:#0e1520}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .inst{color:#0e1520}}
+.fname{all:unset;cursor:pointer;font-weight:600;line-height:1.3}
+.fname:hover{text-decoration:underline;text-underline-offset:3px}
+.fname:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.fsub{font-size:.78rem;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 8px}
+.tag{font-size:.7rem;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--muted)}
+.tag.warn{border-color:var(--warn);color:var(--warn)}
+td.num{font-family:var(--font-mono);font-size:.92rem}
+.neg{color:var(--neg)} .pos{color:var(--ink)}
+td.best{background:var(--best)!important;color:var(--best-ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--best-line)}
+td.best .neg{color:inherit}
+td.na{color:var(--muted)}
+.risk{display:inline-block;font:500 .74rem var(--font-mono);border-radius:999px;padding:1px 8px;border:1px solid var(--line)}
+.risk.lo{color:var(--pos);border-color:color-mix(in srgb,var(--pos) 45%,transparent)}
+.risk.mid{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.risk.hi{color:var(--neg);border-color:color-mix(in srgb,var(--neg) 45%,transparent)}
+td.resc{font-size:.82rem;color:var(--muted);text-align:left}
+td.date{font:.8rem var(--font-mono);color:var(--muted)}
+td.spark{padding-block:4px}
+svg.sp{display:block}
+.sp .zero{stroke:var(--line);stroke-dasharray:2 3}
+.sp .ln{fill:none;stroke:var(--accent);stroke-width:1.5}
+.sp .ar{fill:var(--accent);opacity:.12}
+.sp .dot{fill:var(--accent)}
+.sp.down .ln{stroke:var(--neg)} .sp.down .ar{fill:var(--neg)} .sp.down .dot{fill:var(--neg)}
+tr.detail td{background:var(--soft);text-align:left;white-space:normal;font-size:.86rem}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 24px;padding:4px 0 4px 50px}
+.dgrid dt{font:600 .68rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dgrid dd{margin:2px 0 0}
+.dgrid a{color:var(--accent)}
+
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px;color:var(--muted);text-align:center}
+footer.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 32px;font-size:.84rem;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+footer.notes h3{font:600 .72rem var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink);margin:0 0 6px}
+footer.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+@media (max-width:640px){header.top{grid-template-columns:1fr}.actions{align-items:stretch}.lastfull{text-align:left}button.primary{justify-content:center}}
+
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--surface);margin-right:8px}
+.tab{all:unset;cursor:pointer;font:700 .95rem var(--font-display);font-stretch:90%;padding:7px 18px;border-radius:7px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a.primary{font:600 .95rem var(--font-body);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:11px 18px;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
+a.primary:hover{filter:brightness(1.08)}
+a.primary[aria-disabled="true"]{opacity:.5;pointer-events:none}
+.tag.ars{border-color:var(--accent);color:var(--accent);font-weight:600}
+.tipo{font:600 .72rem var(--font-body);color:var(--accent);flex-basis:100%}
+@media (max-width:640px){a.primary{justify-content:center}.viewer-note,.lastfull{text-align:left;max-width:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="banks" aria-label="Moneda y bancos">
+    <div class="tabs" role="tablist" aria-label="Moneda">
+      <button type="button" role="tab" class="tab" id="tab-USD" data-tab="USD" aria-selected="true">Dólares</button>
+      <button type="button" role="tab" class="tab" id="tab-ARS" data-tab="ARS" aria-selected="false">Pesos</button>
+    </div>
+    <span class="banks-label">Bancos</span>
+    <div class="bankchips" id="bankChips"></div>
+    <button type="button" class="linkish" id="allBanks">Elegir todos</button>
+  </nav>
+
+  <header class="top">
+    <div>
+      <p class="kicker" id="kicker">Balanz · Santander · Macro · Galicia · BBVA — FCI en dólares</p>
+      <h1 id="pageTitle">Monitor FCI</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div class="actions">
+      <a class="primary" id="updateLink" href="#" target="_blank" rel="noopener">Actualizar datos</a>
+      <p class="viewer-note">Se actualiza sola cada noche a las 0 h. Para forzarlo: abre GitHub, tocá <b>Run workflow</b> (solo la cuenta dueña). Tarda 2 o 3 minutos.</p>
+      <p class="lastfull" id="lastFull">Cargando datos…</p>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><span class="sw" aria-hidden="true"></span>Mejor rendimiento del período dentro de su familia</span>
+    <span>Marcá la casilla de los fondos que tenés para resaltarlos · tocá el nombre para ver la ficha · tocá un encabezado para ordenar</span>
+  </div>
+  <div class="mine" id="mine" hidden></div>
+
+  <div id="families">
+    <div class="empty">Cargando los datos de los fondos…</div>
+  </div>
+
+  <footer class="notes">
+    <div>
+      <h3>Cómo leer las columnas</h3>
+      <ul>
+        <li><b>1 mes, 3 meses, 12 meses:</b> variación de la cuotaparte, sin anualizar. En la solapa Pesos y en la familia Dollar linked son rendimientos nominales en pesos.</li>
+        <li><b>Peor caída:</b> la mayor baja desde un máximo durante los últimos 12 meses, medida con datos semanales.</li>
+        <li><b>Volatilidad:</b> desvío estándar de las variaciones semanales de los últimos 12 meses, anualizado (× √52).</li>
+        <li><b>Sharpe:</b> rendimiento de 12 meses dividido por la volatilidad, con tasa libre de riesgo 0. Requiere un año de historia.</li>
+        <li><b>Gráfico:</b> rendimiento acumulado semanal en % de los últimos 12 meses (o desde el lanzamiento).</li>
+        <li><b>Datos al:</b> fecha de la última cuotaparte publicada por CAFCI.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>De dónde salen los datos</h3>
+      <ul>
+        <li>Fuente única: CAFCI, la Cámara Argentina de FCI. Rendimientos de la ficha oficial de cada fondo (money market: TNA convertida a rendimiento directo); riesgo y gráfico de la serie semanal del comparador de CAFCI.</li>
+        <li>Solo se muestran fondos con <b>Clase A</b> (personas humanas) que tenga inversores, y siempre se muestra esa clase.</li>
+        <li>Plazo de rescate según CAFCI (plazo del reglamento); en la práctica puede ser más rápido.</li>
+        <li>Los datos se actualizan solos todas las noches a las 0 h (GitHub puede demorarlo unos minutos). El dueño del sitio también puede tocar <b>Actualizar datos</b>.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Qué quedó afuera</h3>
+      <ul id="skipped">
+        <li>Fondos de acciones en dólares (en la solapa Dólares solo hay money market y renta fija).</li>
+      </ul>
+      <ul>
+        <li>Esto es información para comparar, no una recomendación de inversión. Rendimientos pasados no garantizan los futuros.</li>
+      </ul>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // Repositorio de GitHub donde corre la actualización (se completa al publicar).
+  const REPO = 'fernandonieto-cmd/monitor-fci';
+  const WORKFLOW = 'actualizar.yml';
+
+  const FAMS = {
+    USD: [
+      {id:'mm', title:'Money Market', sub:'Rescate en el día. Para la plata que puede hacer falta en cualquier momento.'},
+      {id:'rf', title:'Renta fija', sub:'Bonos y obligaciones negociables en dólares. Pueden tener días negativos. Fijate el plazo de rescate de cada fondo.'},
+      {id:'dl', title:'Dollar linked (en pesos)', sub:'Ojo: son fondos en PESOS (AR$). Se suscriben y rescatan en pesos y siguen la evolución del dólar oficial. Rendimientos en pesos. Debajo de cada nombre, su tipo según CAFCI.'}
+    ],
+    ARS: [
+      {id:'mm', title:'Money Market', sub:'Rescate en el día. Rendimientos nominales en pesos.'},
+      {id:'rf', title:'Renta fija', sub:'Tasa fija, CER, T+1 y demás fondos de renta fija en pesos. Los dollar linked están en la solapa Dólares.'},
+      {id:'rv', title:'Renta variable', sub:'Fondos de acciones. Los más volátiles de la tabla.'},
+      {id:'otros', title:'Otros', sub:'Renta mixta, retorno total, PyMEs, infraestructura, ASG y fondos especiales. Debajo de cada nombre, su tipo según CAFCI.'}
+    ]
+  };
+  const CUR_TEXT = {
+    USD: {kicker:'Balanz · Santander · Macro · Galicia · BBVA — FCI en dólares', title:'Monitor FCI en dólares',
+          lede:'Todos los fondos de money market y renta fija en dólares de cinco instituciones, más los fondos en pesos dollar linked.'},
+    ARS: {kicker:'Balanz · Santander · Macro · Galicia · BBVA — FCI en pesos', title:'Monitor FCI en pesos',
+          lede:'Todos los fondos en pesos de cinco instituciones: money market, renta fija, renta variable y otros.'}
+  };
+  const INST = {balanz:{label:'Balanz',mono:'BLZ'}, santander:{label:'Santander',mono:'SAN'}, macro:{label:'Macro',mono:'MAC'},
+                galicia:{label:'Galicia',mono:'GAL'}, bbva:{label:'BBVA',mono:'BBVA'}};
+  const BANKS = ['balanz','santander','macro','galicia','bbva'];
+  const COLS = [
+    {k:'r1m',label:'1 mes'},{k:'r3m',label:'3 meses'},{k:'r12m',label:'12 meses'},
+    {k:'mdd',label:'Peor caída'},{k:'vol',label:'<span>Volatilidad<small class="thsub">(12 meses)</small></span>'},{k:'sharpe',label:'Sharpe'}
+  ];
+  const BEST_KEYS = ['r1m','r3m','r12m'];
+
+  let data = null, funds = [];
+  const inTab = f => tab === 'USD' ? (f.cur === 'USD' || f.fam === 'dl') : (f.cur === 'ARS' && f.fam !== 'dl');
+  const prefs = loadPrefs();
+  let tab = (location.hash === '#pesos') ? 'ARS' : (location.hash === '#dolares' ? 'USD' : (prefs.tab || 'USD'));
+  let selected = new Set(Array.isArray(prefs.banks) ? prefs.banks.filter(b => BANKS.includes(b)) : BANKS);
+  let marks = new Set(Array.isArray(prefs.marks) ? prefs.marks : []);
+  const sortState = prefs.sort || {};
+  const open = new Set();
+
+  // ---------- helpers ----------
+  const $ = (s, r=document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtPct = (v, sign=true) => v == null || isNaN(v) ? '—' :
+    (sign && v > 0 ? '+' : '') + v.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
+  const fmtDate = iso => { if(!iso) return '—'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+  const fmtStamp = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
+  const fmtAum = (n, cur) => {
+    if (!n) return '—';
+    const pre = cur === 'USD' ? 'USD ' : '$ ';
+    if (n >= 1e9) return pre + (n/1e9).toLocaleString('es-AR',{maximumFractionDigits:2}) + ' mil M';
+    return pre + (n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1}) + ' M';
+  };
+  const dayDiff = (a, b) => (new Date(a+'T12:00:00') - new Date(b+'T12:00:00')) / 864e5;
+  const toIso = s => `20${s.slice(0,2)}-${s.slice(2,4)}-${s.slice(4,6)}`;
+  function loadPrefs(){ try { return JSON.parse(localStorage.getItem('fciMonitorPrefs') || '{}') || {}; } catch { return {}; } }
+  function savePrefs(){
+    try { localStorage.setItem('fciMonitorPrefs', JSON.stringify({tab, banks: BANKS.filter(b => selected.has(b)), marks:[...marks], sort: sortState})); } catch {}
+  }
+  function riskClass(k, v){
+    if (v == null) return '';
+    const a = Math.abs(v);
+    if (k === 'vol') return a < 1 ? 'lo' : a < 5 ? 'mid' : 'hi';
+    return a < 0.5 ? 'lo' : a < 3 ? 'mid' : 'hi';
+  }
+
+  // ---------- sparkline ----------
+  function spark(f){
+    const h = f.h || []; if (h.length < 2) return '<span class="muted">—</span>';
+    const d0 = toIso(h[0][0]);
+    const pts = h.map(([d,p]) => [dayDiff(toIso(d), d0), p]);
+    const W = 132, H = 34, pad = 3;
+    const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+    const xmax = Math.max(...xs) || 1, ymin = Math.min(0, ...ys), ymax = Math.max(0, ...ys);
+    const span = (ymax - ymin) || 1;
+    const X = x => pad + (x/xmax)*(W-2*pad), Y = y => pad + (1-(y-ymin)/span)*(H-2*pad);
+    const d = pts.map((p,i) => (i?'L':'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+    const area = d + ` L ${X(xmax).toFixed(1)} ${Y(0).toFixed(1)} L ${X(0).toFixed(1)} ${Y(0).toFixed(1)} Z`;
+    const last = pts.at(-1); const down = last[1] < 0;
+    const label = `Rendimiento acumulado desde ${fmtDate(d0)}: ${fmtPct(last[1])}`;
+    return `<svg class="sp${down?' down':''}" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"><title>${esc(label)}</title>
+      <line class="zero" x1="${pad}" x2="${W-pad}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
+      <path class="ar" d="${area}"/><path class="ln" d="${d}"/>
+      <circle class="dot" cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.6"/></svg>`;
+  }
+
+  // ---------- render ----------
+  function renderTop(){
+    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+    const t = CUR_TEXT[tab];
+    $('#kicker').textContent = t.kicker; $('#pageTitle').textContent = t.title; $('#lede').textContent = t.lede;
+    document.title = t.title;
+    const all = funds.filter(inTab);
+    $('#bankChips').innerHTML = BANKS.map(b => {
+      const on = selected.has(b), n = all.filter(f => f.inst === b).length;
+      return `<label class="bankchip${on?'':' off'}"><input type="checkbox" id="bk-${b}" data-bank="${b}"${on?' checked':''}>
+        <span class="inst ${b}" aria-hidden="true">${INST[b].mono}</span>${INST[b].label}<span class="cnt">${n}</span></label>`;
+    }).join('');
+    $('#allBanks').hidden = selected.size === BANKS.length;
+  }
+  function render(){
+    renderTop();
+    const host = $('#families');
+    if (!data){ return; }
+    const list = funds.filter(f => inTab(f) && selected.has(f.inst));
+    if (!list.length){ host.innerHTML = `<div class="empty">No hay bancos elegidos. Tildá al menos uno en el menú de arriba.</div>`; $('#mine').hidden = true; return; }
+    host.innerHTML = FAMS[tab].map(fam => famHtml(fam, list.filter(f => f.fam === fam.id))).join('');
+    const mine = funds.filter(f => marks.has(f.id) && inTab(f));
+    const mineEl = $('#mine'); mineEl.hidden = !mine.length;
+    mineEl.innerHTML = mine.length ? '<b>Tus fondos:</b>' + mine.map(f => `<span class="chip">${esc(f.name)}<span>1m ${fmtPct(f.r1m)} · 12m ${fmtPct(f.r12m)}</span></span>`).join('') : '';
+  }
+
+  function famHtml(fam, rows){
+    const showTipo = fam.id === 'otros' || fam.id === 'dl';
+    if (!rows.length) return '';
+    const best = {};
+    for (const k of BEST_KEYS){
+      const vals = rows.map(r => r[k]).filter(v => v != null && !isNaN(v));
+      if (vals.length) best[k] = Math.max(...vals);
+    }
+    const key = tab + '-' + fam.id;
+    const st = sortState[key] || {k:'r12m', dir:'desc'};
+    const sorted = rows.slice().sort((a,b) => {
+      if (st.k === 'name') return (a.name.localeCompare(b.name)) * (st.dir==='asc'?1:-1);
+      const av = a[st.k], bv = b[st.k];
+      if (av == null && bv == null) return 0; if (av == null) return 1; if (bv == null) return -1;
+      return (av - bv) * (st.dir==='asc'?1:-1);
+    });
+    const lead = rows.filter(r => r.r12m != null && r.r12m === best.r12m)[0];
+    const th = (k,label,align) => {
+      const on = st.k === k; const aria = on ? ` aria-sort="${st.dir==='asc'?'ascending':'descending'}"` : '';
+      return `<th scope="col"${aria}${align?` style="text-align:${align}"`:''}><button type="button" data-sort="${k}" data-fam="${key}">${label}<span class="arr">${on ? (st.dir==='asc'?'▲':'▼') : '↕'}</span></button></th>`;
+    };
+    return `<section class="fam" aria-labelledby="h-${key}">
+      <div class="famhead"><div><h2 id="h-${key}">${fam.title}</h2><p>${fam.sub}</p></div>
+      <p>${rows.length} fondos${lead ? ` · mejor en 12 meses: <b>${esc(lead.name)}</b> (${fmtPct(lead.r12m)})` : ''}</p></div>
+      <div class="tablebox"><table>
+        <thead><tr><th scope="col" class="mk"><span class="sr">Marcar</span></th>${th('name','Fondo','left')}<th scope="col" style="text-align:left">Rescate</th>${COLS.map(c=>th(c.k,c.label)).join('')}<th scope="col">Últimos 12 meses</th><th scope="col">Datos al</th></tr></thead>
+        <tbody>${sorted.map(f => rowHtml(f, best, showTipo)).join('')}</tbody>
+      </table></div></section>`;
+  }
+
+  function rowHtml(f, best, showTipo){
+    const inst = INST[f.inst] || {label:f.inst,mono:'?'};
+    const cell = k => {
+      const v = f[k];
+      if (v == null || isNaN(v)) return `<td class="num na" title="${k==='sharpe' ? 'Hace falta un año completo de historia' : 'Sin dato para este período'}">—</td>`;
+      if (k === 'sharpe') return `<td class="num" title="Rendimiento 12 meses ÷ volatilidad"><span class="${v<0?'neg':'pos'}">${v.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>`;
+      if (k === 'mdd' || k === 'vol'){
+        const txt = k === 'mdd' ? (v === 0 ? '0,00%' : fmtPct(v, false)) : fmtPct(v, false);
+        return `<td class="num" title="Al ${fmtDate(f.riskAsOf)} · calculado con datos semanales de CAFCI"><span class="risk ${riskClass(k,v)}">${txt}</span></td>`;
+      }
+      const isBest = best[k] != null && v === best[k];
+      return `<td class="num${isBest?' best':''}"${isBest?' title="Mejor rendimiento de la familia en este período"':''}><span class="${v<0?'neg':'pos'}">${fmtPct(v)}</span></td>`;
+    };
+    const tags = [];
+    if (showTipo) tags.push(`<span class="tipo">${esc(f.tipo)}</span>`);
+    tags.push(`<span>${esc(inst.label)} · ${esc(f.cls||'')}</span>`);
+    if (f.fam === 'dl') tags.push(`<span class="tag ars">En pesos (AR$)</span>`);
+    if (f.online === false) tags.push(`<span class="tag warn" title="No aparece para suscribir en la web pública de la institución">Sin suscripción online</span>`);
+    if (f.note) tags.push(`<span class="tag">${esc(f.note)}</span>`);
+    const isOpen = open.has(f.id), marked = marks.has(f.id);
+    let html = `<tr class="row${marked?' marked':''}">
+      <td class="mk"><input type="checkbox" id="mk-${esc(f.id)}" data-mark="${esc(f.id)}"${marked?' checked':''} aria-label="Marcar ${esc(f.name)}"></td>
+      <td class="fund"><div class="fundcell"><span class="inst ${esc(f.inst)}" aria-hidden="true">${inst.mono}</span>
+        <div><button type="button" class="fname" data-open="${esc(f.id)}" aria-expanded="${isOpen}">${esc(f.name)}</button><div class="fsub">${tags.join('')}</div></div></div></td>
+      <td class="resc">${esc(f.resc)}</td>
+      ${COLS.map(c => cell(c.k)).join('')}
+      <td class="spark">${spark(f)}</td>
+      <td class="date">${fmtDate(f.asOf)}</td></tr>`;
+    if (isOpen){
+      html += `<tr class="detail${marked?' marked':''}"><td colspan="${COLS.length+5}"><dl class="dgrid">
+        <div><dt>Tipo (CAFCI)</dt><dd>${esc(f.tipo||'—')}</dd></div>
+        <div><dt>Inversión mínima</dt><dd>${esc(f.min||'—')}</dd></div>
+        <div><dt>Plazo / duration</dt><dd>${esc(f.dur||'—')}</dd></div>
+        <div><dt>Patrimonio del fondo</dt><dd>${fmtAum(f.aum, f.cur)}</dd></div>
+        <div><dt>Objetivo / cartera</dt><dd>${esc(f.cartera||'—')}</dd></div>
+        <div><dt>Fuente</dt><dd><a href="${esc(f.url)}" target="_blank" rel="noopener">Ver ficha en CAFCI</a></dd></div>
+      </dl></td></tr>`;
+    }
+    return html;
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-tab]');
+    if (t){ tab = t.dataset.tab; history.replaceState(null, '', tab === 'ARS' ? '#pesos' : '#dolares'); savePrefs(); render(); return; }
+    const s = e.target.closest('[data-sort]');
+    if (s){
+      const key = s.dataset.fam, k = s.dataset.sort; const cur = sortState[key] || {k:'r12m',dir:'desc'};
+      sortState[key] = cur.k === k ? {k, dir: cur.dir === 'desc' ? 'asc' : 'desc'} : {k, dir: k==='name' || k==='vol' ? 'asc' : 'desc'};
+      savePrefs(); render(); return;
+    }
+    const mk = e.target.closest('[data-mark]');
+    if (mk){ const id = mk.dataset.mark; mk.checked ? marks.add(id) : marks.delete(id); savePrefs(); render(); return; }
+    const bk = e.target.closest('[data-bank]');
+    if (bk){ bk.checked ? selected.add(bk.dataset.bank) : selected.delete(bk.dataset.bank); savePrefs(); render(); return; }
+    if (e.target.closest('#allBanks')){ selected = new Set(BANKS); savePrefs(); render(); return; }
+    const o = e.target.closest('[data-open]');
+    if (o){ const id = o.dataset.open; open.has(id) ? open.delete(id) : open.add(id); render(); }
+  });
+
+  // ---------- botón de actualizar ----------
+  const upd = $('#updateLink');
+  if (REPO.includes('/')) upd.href = `https://github.com/${REPO}/actions/workflows/${WORKFLOW}`;
+  else { upd.removeAttribute('href'); upd.setAttribute('aria-disabled','true'); }
+
+  // ---------- datos ----------
+  render();
+  fetch('data/data.json?ts=' + Date.now(), {cache:'no-store'})
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => {
+      data = d; funds = d.funds || [];
+      $('#lastFull').textContent = 'Datos actualizados: ' + fmtStamp(d.generatedAt);
+      if (Array.isArray(d.skipped) && d.skipped.length){
+        $('#skipped').insertAdjacentHTML('beforeend', `<li>Fondos sin Clase A con inversores, sin actividad o con patrimonio menor a USD 50.000 / $ 50 M (${d.skipped.length}): ${d.skipped.map(esc).join('; ')}.</li>`);
+      }
+      render();
+    })
+    .catch(() => { $('#families').innerHTML = '<div class="empty">No se pudieron cargar los datos. Recargá la página en un momento.</div>'; $('#lastFull').textContent = ''; });
+})();
+</script>
+
+</body>
+</html>
