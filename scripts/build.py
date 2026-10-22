@@ -5,7 +5,7 @@ Fuente única: CAFCI (estadisticas.cafci.org.ar).
 - Elige todos los fondos vigentes de Balanz, Santander, Macro, Galicia y BBVA.
   Dólares: money market y renta fija. Pesos: todos los tipos (los dollar linked van en la familia 'dl', que se ve en la solapa Dólares).
 - Solo fondos con Clase A (personas humanas) con inversores; se muestra siempre la Clase A.
-- Rendimientos 1 mes / 90 días / 12 meses de la ficha oficial (money market: TNA -> rendimiento directo).
+- Rendimientos 7 días / 1 mes / 90 días / 12 meses de la ficha oficial (money market: TNA -> rendimiento directo).
 - Peor caída, volatilidad (desvío semanal x raíz de 52) y gráfico, de la serie semanal de 12 meses del comparador.
 
 Uso: python3 scripts/build.py [salida=data/data.json]
@@ -143,7 +143,7 @@ def main():
             fi = cafci_src.ficha(x['f'], x['c'])
         except Exception as e:
             failed[x['id']] = f'ficha: {type(e).__name__}: {e}'; continue
-        x.update({'asOf': fi['asOf'], 'r1m': fi['r1m'], 'r3m': fi['r3m'], 'r12m': fi['r12m']})
+        x.update({'asOf': fi['asOf'], 'r7d': fi['r7d'], 'r1m': fi['r1m'], 'r3m': fi['r3m'], 'r12m': fi['r12m']})
         s = ser.get((x['f'], x['c']))
         x['mdd'] = x['vol'] = None; x['h'] = []
         if s and len(s) > 3:

@@ -1,6 +1,6 @@
 """Lectura de datos públicos de la Cámara Argentina de FCI (estadisticas.cafci.org.ar).
 
-- ficha(fondo, clase): cuotaparte, rendimientos directos (1 mes, 90 días, 12 meses), fecha y patrimonio.
+- ficha(fondo, clase): cuotaparte, rendimientos directos (7 días, 1 mes, 90 días, 12 meses), fecha y patrimonio.
 - series(pares): rendimiento acumulado semanal de los últimos 12 meses (comparador, hasta 4 fondos por pedido).
 CloudFront a veces responde 403 al primer pedido: se reintenta con espera.
 """
@@ -47,7 +47,7 @@ def ficha(fondo, clase):
     d = dt.date.fromisoformat(as_of)
     prev = (d.replace(day=1) - dt.timedelta(days=1))
     month_days = (d - prev.replace(day=min(d.day, prev.day))).days
-    days = {'1 mes': month_days, '90 días': 90, '12 meses': 365}
+    days = {'7 días': 7, '1 mes': month_days, '90 días': 90, '12 meses': 365}
 
     def per(label):
         mm = re.search(re.escape(label) + r' (-?[\d.,]+) %', seg)
@@ -57,7 +57,7 @@ def ficha(fondo, clase):
             v = v * days[label] / 365
         return round(v, 2) + 0.0
 
-    out = {'asOf': as_of, 'r1m': per('1 mes'), 'r3m': per('90 días'), 'r12m': per('12 meses'), 'tna': tna}
+    out = {'asOf': as_of, 'r7d': per('7 días'), 'r1m': per('1 mes'), 'r3m': per('90 días'), 'r12m': per('12 meses'), 'tna': tna}
     mv = re.search(r'Valor por cada cuotaparte: ([\d.,]+)', t)
     if mv: out['cuota'] = _num(mv.group(1))
     mp = re.search(r'Patrimonio bajo administración: ([\d.,]+)', t)

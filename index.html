@@ -89,7 +89,7 @@ section.fam{display:flex;flex-direction:column;gap:12px}
 .famhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;border-bottom:2px solid var(--ink);padding-bottom:8px}
 .famhead p{font-size:.88rem;color:var(--muted)}
 .tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
-table{border-collapse:collapse;width:100%;min-width:1080px;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;min-width:1160px;font-variant-numeric:tabular-nums}
 th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
 th:first-child,td:first-child{text-align:left;white-space:normal}
 thead th{font:600 .72rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--soft)}
@@ -209,7 +209,7 @@ a.primary[aria-disabled="true"]{opacity:.5;pointer-events:none}
     <div>
       <h3>Cómo leer las columnas</h3>
       <ul>
-        <li><b>1 mes, 3 meses, 12 meses:</b> variación de la cuotaparte, sin anualizar. En la solapa Pesos y en la familia Dollar linked son rendimientos nominales en pesos.</li>
+        <li><b>7 días, 1 mes, 3 meses, 12 meses:</b> variación de la cuotaparte entre esas fechas, con datos diarios de CAFCI, sin anualizar. En la solapa Pesos y en la familia Dollar linked son rendimientos nominales en pesos.</li>
         <li><b>Peor caída:</b> la mayor baja desde un máximo durante los últimos 12 meses, medida con datos semanales.</li>
         <li><b>Volatilidad:</b> desvío estándar de las variaciones semanales de los últimos 12 meses, anualizado (× √52).</li>
         <li><b>Sharpe:</b> rendimiento de 12 meses dividido por la volatilidad, con tasa libre de riesgo 0. Requiere un año de historia.</li>
@@ -267,10 +267,10 @@ a.primary[aria-disabled="true"]{opacity:.5;pointer-events:none}
                 galicia:{label:'Galicia',mono:'GAL'}, bbva:{label:'BBVA',mono:'BBVA'}};
   const BANKS = ['balanz','santander','macro','galicia','bbva'];
   const COLS = [
-    {k:'r1m',label:'1 mes'},{k:'r3m',label:'3 meses'},{k:'r12m',label:'12 meses'},
+    {k:'r7d',label:'7 días'},{k:'r1m',label:'1 mes'},{k:'r3m',label:'3 meses'},{k:'r12m',label:'12 meses'},
     {k:'mdd',label:'Peor caída'},{k:'vol',label:'<span>Volatilidad<small class="thsub">(12 meses)</small></span>'},{k:'sharpe',label:'Sharpe'}
   ];
-  const BEST_KEYS = ['r1m','r3m','r12m'];
+  const BEST_KEYS = ['r7d','r1m','r3m','r12m'];
 
   let data = null, funds = [];
   const inTab = f => tab === 'USD' ? (f.cur === 'USD' || f.fam === 'dl') : (f.cur === 'ARS' && f.fam !== 'dl');
@@ -350,7 +350,7 @@ a.primary[aria-disabled="true"]{opacity:.5;pointer-events:none}
     host.innerHTML = FAMS[tab].map(fam => famHtml(fam, list.filter(f => f.fam === fam.id))).join('');
     const mine = funds.filter(f => marks.has(f.id) && inTab(f));
     const mineEl = $('#mine'); mineEl.hidden = !mine.length;
-    mineEl.innerHTML = mine.length ? '<b>Tus fondos:</b>' + mine.map(f => `<span class="chip">${esc(f.name)}<span>1m ${fmtPct(f.r1m)} · 12m ${fmtPct(f.r12m)}</span></span>`).join('') : '';
+    mineEl.innerHTML = mine.length ? '<b>Tus fondos:</b>' + mine.map(f => `<span class="chip">${esc(f.name)}<span>7d ${fmtPct(f.r7d)} · 1m ${fmtPct(f.r1m)} · 12m ${fmtPct(f.r12m)}</span></span>`).join('') : '';
   }
 
   function famHtml(fam, rows){
